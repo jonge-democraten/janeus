@@ -1,4 +1,4 @@
-Janeus implements LDAP-related functionality for sites of de Jonge Democraten.
+Janeus implements LDAP-related functionality for sites of the Jonge Democraten.
 
 Installation
 ---
