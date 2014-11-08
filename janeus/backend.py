@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 import logging
 from janeus import Janeus
+from janeus.models import JaneusUser
 
 logger = logging.getLogger(__name__)
 
@@ -21,31 +22,34 @@ class JaneusBackend(object):
 
         # ok login works, get groups
         groups = j.groups_of_dn(dn)
+
+        # check if this user has access
         if not settings.JANEUS_AUTH(username, groups): return None
 
-        # get or create nieuwe User
-        model = get_user_model()
-        username_field = getattr(model, 'USERNAME_FIELD', 'username')
+        # get or create JaneusUser
+        try:
+            juser = JaneusUser.objects.get(uid=username)
+        except JaneusUser.DoesNotExist:
+            juser = JaneusUser(uid=username, user=None)
+            juser.save()
 
-        kwargs = {
-            username_field + '__iexact': username,
-            'defaults': {username_field: username.lower()}
-        }
+        # get or create User
+        if juser.user == None:
+            model = get_user_model()
+            username_field = getattr(model, 'USERNAME_FIELD', 'username')
 
-        user, created = model.objects.get_or_create(**kwargs)
+            kwargs = {
+                username_field + '__iexact': username,
+                'defaults': {username_field: username.lower()}
+            }
 
-        if created: user.set_unusable_password()
-        setattr(user, 'last_name', attrs['sn'][0]);
-        setattr(user, 'email', attrs['mail'][0]);
-        setattr(user, 'is_active', True)
-        setattr(user, 'is_staff', True)
+            user, created = model.objects.get_or_create(**kwargs)
+            if created: user.set_unusable_password()
+            juser.user = user
+            juser.save()
 
-        for p in Permission.objects.filter(settings.JANEUS_AUTH_PERMISSIONS(username, groups)):
-            user.user_permissions.add(p)
+        return juser.reset_from_ldap(attrs=attrs, groups=groups)
 
-        user.save()
-        return user
-           
     def get_user(self, user_id):
         try:
             return get_user_model().objects.get(pk=user_id)
