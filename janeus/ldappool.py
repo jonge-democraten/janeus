@@ -2,19 +2,20 @@ from threading import Condition
 from contextlib import contextmanager
 import ldap
 
+
 class LDAPPool(object):
     __shared_state = {}
 
     def __init__(self, connection_limit=8):
         self.__dict__ = self.__shared_state
 
-        if not self.__dict__.has_key('lock'):
+        if 'lock' not in self.__dict__:
             self.lock = Condition()
 
-        if not self.__dict__.has_key('connections'):
+        if 'connections' not in self.__dict__:
             self.connections = {}
-         
-        if not self.__dict__.has_key('connection_limit'):
+
+        if 'connection_limit' not in self.__dict__:
             self.connection_limit = connection_limit
 
     def _create_connection(self, uri, dn, password):
@@ -26,13 +27,13 @@ class LDAPPool(object):
     def connection(self, uri, dn, password):
         # Get data for uri
         with self.lock:
-            if not self.connections.has_key(uri):
+            if uri not in self.connections:
                 self.connections[uri] = Condition(), {}
-            lock, connections = self.connections[uri] 
+            lock, connections = self.connections[uri]
 
         # Get data for dn
         with lock:
-            if not connections.has_key(dn):
+            if dn not in connections:
                 connections[dn] = Condition(), [0], []
             lock, counter, connections = connections[dn]
 
@@ -59,7 +60,7 @@ class LDAPPool(object):
         # From this point, we MUST free one waiter with notify.
         try:
             try:
-                result = conn.whoami_s()
+                conn.whoami_s()
             except ldap.SERVER_DOWN:
                 conn = None
             except ldap.LDAPError:
@@ -69,15 +70,17 @@ class LDAPPool(object):
                 finally:
                     conn = None
 
-            if conn == None:
+            if conn is None:
                 # We lost connection, reconnect
                 conn = self._create_connection(uri, dn, password)
                 # if reconnect fails, conn == None in the finally block
-                
+
             # OK, we got a connection. Let's go!
             yield conn
         finally:
             with lock:
-                if conn != None: connections.append(conn)
-                else: counter[0] -= 1
+                if conn is not None:
+                    connections.append(conn)
+                else:
+                    counter[0] -= 1
                 lock.notify()

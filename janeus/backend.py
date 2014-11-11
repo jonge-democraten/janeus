@@ -1,11 +1,12 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
+from django.core.exceptions import ObjectDoesNotExist
 import logging
 from janeus import Janeus
 from janeus.models import JaneusUser
 
 logger = logging.getLogger(__name__)
+
 
 class JaneusBackend(object):
     def authenticate(self, username=None, password=None):
@@ -14,17 +15,20 @@ class JaneusBackend(object):
 
         # get dn of user
         res = j.by_uid(username)
-        if res == None: return None
+        if res is None:
+            return None
         dn, attrs = res
 
         # ok we have dn, try to login
-        if not j.test_login(dn, password): return None
+        if not j.test_login(dn, password):
+            return None
 
         # ok login works, get groups
         groups = j.groups_of_dn(dn)
 
         # check if this user has access
-        if not settings.JANEUS_AUTH(username, groups): return None
+        if not settings.JANEUS_AUTH(username, groups):
+            return None
 
         # get or create JaneusUser
         try:
@@ -34,7 +38,7 @@ class JaneusBackend(object):
             juser.save()
 
         # get or create User
-        if juser.user == None:
+        if juser.user is None:
             model = get_user_model()
             username_field = getattr(model, 'USERNAME_FIELD', 'username')
 
@@ -44,7 +48,8 @@ class JaneusBackend(object):
             }
 
             user, created = model.objects.get_or_create(**kwargs)
-            if created: user.set_unusable_password()
+            if created:
+                user.set_unusable_password()
             juser.user = user
             juser.save()
 
