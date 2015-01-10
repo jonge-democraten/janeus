@@ -14,6 +14,15 @@ class Janeus(object):
         with LDAPPool().connection(settings.JANEUS_SERVER, settings.JANEUS_DN, settings.JANEUS_PASS) as conn:
             yield conn
 
+    def by_dn(self, dn):
+        """Opvragen (dn, attrs) van gebruiker met dn, of geeft None terug als niet gevonden"""
+        with self._connection() as l:
+            result_data = l.search_st(dn, ldap.SCOPE_BASE, timeout=1)
+        if len(result_data) != 1:
+            return None
+        dn, attrs = result_data[0]
+        return dn, attrs
+
     def by_uid(self, uid):
         """Opvragen (dn, attrs) van gebruiker met uid, of geeft None terug als niet uniek gevonden"""
         baseDN = "ou=users,dc=jd,dc=nl"
@@ -27,13 +36,8 @@ class Janeus(object):
 
     def by_lidnummer(self, lidnummer):
         """Opvragen (dn, attrs) van gebruiker met lidnummer, of geeft None terug als niet uniek gevonden"""
-        baseDN = "cn=" + str(int(lidnummer)) + ",ou=users,dc=jd,dc=nl"
-        with self._connection() as l:
-            result_data = l.search_st(baseDN, ldap.SCOPE_BASE, timeout=1)
-        if len(result_data) != 1:
-            return None
-        dn, attrs = result_data[0]
-        return dn, attrs
+        dn = "cn=" + str(int(lidnummer)) + ",ou=users,dc=jd,dc=nl"
+        return self.by_dn(dn)
 
     def by_email(self, email):
         """Opvragen (dn, attrs) van gebruiker met email"""
