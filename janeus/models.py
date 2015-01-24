@@ -39,14 +39,18 @@ class JaneusUser(models.Model):
 
         # retrieve attrs and groups if necessary
         if attrs is None or roles is None:
-            res = Janeus().by_uid(self.uid)
-            if res is None:
-                self.user.delete()  # cascades
-                return None
-            dn, attrs = res
-            if roles is None:
-                groups = Janeus().groups_of_dn(dn)
-                roles = JaneusRole.objects.filter(role__in=groups)
+            if hasattr(settings, 'JANEUS_FAKE_LDAP'):
+                groups = settings.JANEUS_FAKE_LDAP(self.uid, None)
+                if groups is None or groups == []:
+                    self.user.delete()  # cascades
+                    return None
+            else:
+                res = Janeus().by_uid(self.uid)
+                if res is None:
+                    self.user.delete()  # cascades
+                    return None
+                dn, attrs = res
+            roles = JaneusRole.objects.filter(role__in=groups)
 
         # check if user has access
         if len(roles) == 0:
@@ -54,8 +58,9 @@ class JaneusUser(models.Model):
             return None
 
         # set attributes
-        setattr(self.user, 'last_name', attrs['sn'][0])
-        setattr(self.user, 'email', attrs['mail'][0])
+        if attrs is not None:
+            setattr(self.user, 'last_name', attrs['sn'][0])
+            setattr(self.user, 'email', attrs['mail'][0])
         setattr(self.user, 'is_active', True)
         setattr(self.user, 'is_staff', True)
 

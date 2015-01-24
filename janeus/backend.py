@@ -9,22 +9,44 @@ logger = logging.getLogger(__name__)
 
 
 class JaneusBackend(object):
-    def authenticate(self, username=None, password=None):
-        logger.info("Trying to authenticate %s" % (username,))
+    def real_ldap(self, username, password):
+        """Returns attributes, groups, or None, None if access denied."""
+        logger.info("Trying to authenticate %s in LDAP" % (username,))
         j = Janeus()
 
         # get dn of user
         res = j.by_uid(username)
         if res is None:
-            return None
+            return None, None
         dn, attrs = res
 
         # ok we have dn, try to login
         if not j.test_login(dn, password):
-            return None
+            return None, None
 
         # ok login works, get groups and roles
         groups = j.groups_of_dn(dn)
+        return attrs, groups
+
+    def fake_ldap(self, username, password):
+        """Returns list of groups, or None if access denied."""
+        groups = settings.JANEUS_FAKE_LDAP(username, password)
+        return groups
+
+    def authenticate(self, username=None, password=None):
+        # authenticate plus get groups
+        if hasattr(settings, 'JANEUS_FAKE_LDAP'):
+            groups = self.fake_ldap(username, password)
+            attrs = None
+        else:
+            attrs, groups = self.real_ldap(username, password)
+
+        # if groups is None then authentication failed or user not found
+        # if groups is [] then user not in any group (also no access)
+        if groups is None or groups == []:
+            return None
+
+        # get roles
         roles = JaneusRole.objects.filter(role__in=groups)
 
         # check if this user has access
