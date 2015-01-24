@@ -1,3 +1,4 @@
+from __future__ import print_function
 from django.core.management.base import BaseCommand
 from janeus.models import JaneusUser
 
@@ -7,6 +8,6 @@ class Command(BaseCommand):
         for u in JaneusUser.objects.all():
             uid = u.uid
             if u.reset_from_ldap() is None:
-                print "Deleted {}".format(uid)
+                print("Deleted {}".format(uid))
             else:
-                print "Updated {}".format(uid)
+                print("Updated {}".format(uid))

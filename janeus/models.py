@@ -1,17 +1,20 @@
+from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission
 from django.dispatch import Signal
+from django.utils.encoding import python_2_unicode_compatible
 from janeus import Janeus
 
 
+@python_2_unicode_compatible
 class JaneusRole(models.Model):
     role = models.CharField(max_length=250)
     groups = models.ManyToManyField(Group, blank=True)
     permissions = models.ManyToManyField(Permission, blank=True)
 
-    def __unicode__(self):
-        return unicode(u"Role '{0}'".format(self.role))
+    def __str__(self):
+        return "Role '{0}'".format(self.role)
 
     @staticmethod
     def reset(user):
@@ -26,12 +29,13 @@ class JaneusRole(models.Model):
 janeus_login = Signal(providing_args=['user', 'roles'])
 
 
+@python_2_unicode_compatible
 class JaneusUser(models.Model):
     uid = models.CharField(max_length=250, unique=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)
 
-    def __unicode__(self):
-        return unicode(u"Janeus User '{0}'".format(self.uid))
+    def __str__(self):
+        return "Janeus User '{0}'".format(self.uid)
 
     def reset_from_ldap(self, attrs=None, roles=None):
         assert self.user is not None
