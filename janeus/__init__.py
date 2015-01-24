@@ -40,7 +40,7 @@ class Janeus(object):
         return self.by_dn(dn)
 
     def by_email(self, email):
-        """Opvragen (dn, attrs) van gebruiker met email"""
+        """Opvragen list van pairs (dn, attrs) van gebruikers met email"""
         baseDN = "ou=users,dc=jd,dc=nl"
         searchFilter = filter_format('(mail=%s)', (str(email),))
         with self._connection() as l:
@@ -49,6 +49,7 @@ class Janeus(object):
 
     def attributes(self, lidnummer):
         """Vraag emailadres en naam van lid met lidnummer op.
+        Geeft None of (email, naam)
         Voorbeeld:
         res = attributes(lidnummer)
         if res != None: email, naam = res
@@ -60,7 +61,7 @@ class Janeus(object):
         return attrs['mail'][0], attrs['sn'][0]
 
     def lidnummers(self, email):
-        """Geeeft alle lidnummers die bij een emailadres horen.
+        """Geeft alle lidnummers die bij een emailadres horen.
         Voorbeeld: for lidnummer, naam in lidnummers('email@adr.es'): ...
         """
         return [(int(attrs['cn'][0]), attrs['sn'][0]) for dn, attrs in self.by_email(email)]
@@ -83,6 +84,7 @@ class Janeus(object):
             return False
 
     def chpwd(self, uid, old, new):
+        """Verander wachtwoord voor gebruiker uid van old naar new"""
         try:
             dn, attrs = self.by_uid(uid)
             conn = ldap.initialize(settings.JANEUS_SERVER)
