@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission
+from django.dispatch import Signal
 from janeus import Janeus
 
 
@@ -20,6 +21,9 @@ class JaneusRole(models.Model):
     def apply(self, user):
         user.groups.add(*self.groups.all())
         user.user_permissions.add(*self.permissions.all())
+
+
+janeus_login = Signal(providing_args=['user', 'roles'])
 
 
 class JaneusUser(models.Model):
@@ -59,6 +63,9 @@ class JaneusUser(models.Model):
         JaneusRole.reset(self.user)
         for r in roles:
             r.apply(self.user)
+
+        # send signal
+        janeus_login.send(sender=self.__class__, user=self.user, roles=roles)
 
         # save user
         self.user.save()
