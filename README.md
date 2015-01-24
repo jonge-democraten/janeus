@@ -14,6 +14,10 @@ First install the application in your virtualenv installation:
 
 `pip install -e git+https://github.com/jonge-democraten/janeus#egg=janeus`
 
+If you are using Python 3, you may want to install a fork of python-ldap first:
+
+`pip install -e git+https://github.com/rbarrois/python-ldap@py3#egg=python-ldap`
+
 Configuration
 ---
 
@@ -22,10 +26,8 @@ In your `settings.py` file, you need to set at least `JANEUS_SERVER` (LDAP serve
 This allows the application to connect to your LDAP server.
 
 To configure the authentication backend, you need to add `janeus` to `INSTALLED_APPS` in `settings.py`.
+You must add `janeus.backend.JaneusBackend` to `AUTHENTICATION_BACKENDS`.
 Janeus is compatible with Django 1.7 migrations.
-Then, set `JANEUS_AUTH` and `JANEUS_AUTH_PERMISSIONS`. These are both methods
-that receive the parameters `user` (uid) and `groups` (array of groups). `JANEUS_AUTH` must return either `True` or `False`.
-`JANEUS_AUTH_PERMISSIONS` must return a `Q` object that is a parameter to `Permission.objects.filter()`. Finally, you must add `janeus.backend.JaneusBackend` to `AUTHENTICATION_BACKENDS`.
 
 An example of these settings in `settings.py`:
 
@@ -35,19 +37,29 @@ An example of these settings in `settings.py`:
     
     INSTALLED_APPS += ['janeus']
     
-    def JANEUS_AUTH(user, groups):
-        # Everyone in groups 'ictteam' and 'landelijkbestuur' gets access
-        return "ictteam" in groups or "landelijkbestuur" in groups
-    
-    def JANEUS_AUTH_PERMISSIONS(user, groups):
-        # All users get access to 'zues' and 'appolo' permissions
-        from django.db.models import Q
-        return Q(content_type__app_label='zues') | Q(content_type__app_label='appolo')
-    
     AUTHENTICATION_BACKENDS = (
         'janeus.backend.JaneusBackend', 
         'django.contrib.auth.backends.ModelBackend',
     )
+
+Instead of a real LDAP server you can also use a fake LDAP server by defining method `JANEUS_FAKE_LDAP` in `settings.py`.
+This method takes parameters `username` and `password`, where `password` can be `None` (when called by `janeus_cleanup`, see below).
+It must either return `None` for no access or a list of groups (can be empty) on authentication success.
+
+An example of using a fake LDAP server in `settings.py`:
+
+    def JANEUS_FAKE_LDAP(username, password):
+        # user "test" with password "1234" has role "default_role"
+        # user "admin" with password "admin" has role "admin_role"
+        users = {"test": ("1234", ["default_role"]), "admin": ("admin", ["admin_role"])}
+        if username not in users:
+            return None
+        pwd, groups = users[username]
+        if password is None or password == pwd:
+            return groups
+        return None
+
+To manage authentication, add roles in the Janeus admin (in the Django admin).
 
 Maintenance
 ---
