@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 import logging
 from janeus import Janeus
-from janeus.models import JaneusUser
+from janeus.models import JaneusUser, JaneusRole
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,12 @@ class JaneusBackend(object):
         if not j.test_login(dn, password):
             return None
 
-        # ok login works, get groups
+        # ok login works, get groups and roles
         groups = j.groups_of_dn(dn)
+        roles = JaneusRole.objects.filter(role__in=groups)
 
         # check if this user has access
-        if not settings.JANEUS_AUTH(username, groups):
+        if len(roles) == 0:
             return None
 
         # get or create JaneusUser
@@ -53,7 +54,7 @@ class JaneusBackend(object):
             juser.user = user
             juser.save()
 
-        return juser.reset_from_ldap(attrs=attrs, groups=groups)
+        return juser.reset_from_ldap(attrs=attrs, roles=roles)
 
     def get_user(self, user_id):
         try:
