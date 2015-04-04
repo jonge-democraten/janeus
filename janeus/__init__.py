@@ -74,6 +74,14 @@ class Janeus(object):
             result_data = list(l.search_st(baseDN, ldap.SCOPE_SUBTREE, searchFilter, timeout=3))
         return [attrs['cn'][0] for dn2, attrs in result_data]
 
+    def members_of_group(self, group):
+        """Geeft alle leden (dn,attrs) die lid zijn van de groep"""
+        baseDN = "ou=users,dc=jd,dc=nl"
+        searchFilter = filter_format('(&(objectClass=inetOrgPerson)(memberOf=cn=%s,ou=groups,dc=jd,dc=nl))', (str(group),))
+        with self._connection() as l:
+            result_data = list(l.search_st(baseDN, ldap.SCOPE_SUBTREE, searchFilter, timeout=10))
+        return result_data
+
     def test_login(self, dn, password):
         """Probeert in te loggen met dn+password, True/False indien gelukt/mislukt"""
         try:
