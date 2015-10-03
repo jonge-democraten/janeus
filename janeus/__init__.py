@@ -17,7 +17,10 @@ class Janeus(object):
     def by_dn(self, dn):
         """Opvragen (dn, attrs) van gebruiker met dn, of geeft None terug als niet gevonden"""
         with self._connection() as l:
-            result_data = l.search_st(dn, ldap.SCOPE_BASE, timeout=1)
+            try:
+                result_data = l.search_st(dn, ldap.SCOPE_BASE, timeout=1)
+            except ldap.NO_SUCH_OBJECT:
+                return None
         if len(result_data) != 1:
             return None
         dn, attrs = result_data[0]
