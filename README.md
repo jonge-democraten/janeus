@@ -38,8 +38,8 @@ An example of these settings in `settings.py`:
     INSTALLED_APPS += ['janeus']
     
     AUTHENTICATION_BACKENDS = (
-        'janeus.backend.JaneusBackend', 
         'django.contrib.auth.backends.ModelBackend',
+        'janeus.backend.JaneusBackend', 
     )
 
 Instead of a real LDAP server you can also use a fake LDAP server by defining method `JANEUS_FAKE_LDAP` in `settings.py`.
@@ -61,8 +61,10 @@ An example of using a fake LDAP server in `settings.py`:
 
 To manage authentication, add roles in the Janeus admin (in the Django admin).
 
+If you want functioning support for Sites (django-sites), set `JANEUS_CURRENT_SITE` in your `settings.py` to a function that returns the current site id.
+
 Maintenance
 ---
 
 Janeus implements a management command for `manage.py` called `janeus_cleanup`.
-This command checks every `User` that was added by Janeus and resets the permissions. Users that no longer have access are deleted.
+This command checks every `User` that was added by Janeus. Users that no longer have access are deleted.
