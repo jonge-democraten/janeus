@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 import logging
 from janeus import Janeus
 from janeus.models import JaneusUser, JaneusRole, janeus_login
@@ -68,6 +69,14 @@ class JaneusBackend(object):
             return None
 
         roles = JaneusRole.objects.filter(role__in=groups)
+
+        # find current site
+        if hasattr(settings, 'JANEUS_CURRENT_SITE'):
+            site = settings.JANEUS_CURRENT_SITE()
+        else:
+            site = None
+        if site is not None:
+            roles = roles.filter(Q(sites=None) | Q(sites__id__exact=site))
 
         # if no roles, no access
         if len(roles) == 0:
@@ -150,8 +159,19 @@ class JaneusBackend(object):
         if not hasattr(user_obj, '_janeus_groups_perm_cache'):
             juser, jgroups = self.get_user_groups(user_obj)
             if jgroups is not None:
-                gperms_query = 'group__{}__role__in'.format(JaneusRole._meta.get_field('groups').related_query_name())
-                gperms = Permission.objects.filter(**{gperms_query: jgroups})
+                jroles = JaneusRole.objects.filter(role__in=jgroups)
+                # find current site
+                if hasattr(settings, 'JANEUS_CURRENT_SITE'):
+                    site = settings.JANEUS_CURRENT_SITE()
+                else:
+                    site = None
+                if site is not None:
+                    jroles = jroles.filter(Q(sites=None) | Q(sites__id__exact=site))
+            else:
+                jroles = set()
+            if len(jroles):
+                gperms_query = 'group__{}__in'.format(JaneusRole._meta.get_field('groups').related_query_name())
+                gperms = Permission.objects.filter(**{gperms_query: jroles})
                 gperms = gperms.values_list('content_type__app_label', 'codename').order_by()
                 gperms = set("%s.%s" % (ct, name) for ct, name in gperms)
                 user_obj._janeus_groups_perm_cache = gperms
@@ -165,8 +185,17 @@ class JaneusBackend(object):
         if not hasattr(user_obj, '_janeus_perm_cache'):
             juser, jgroups = self.get_user_groups(user_obj)
             if jgroups is not None:
-                jperms_query = '{}__role__in'.format(JaneusRole._meta.get_field('groups').related_query_name())
-                jperms = Permission.objects.filter(**{jperms_query: jgroups})
+                jroles = JaneusRole.objects.filter(role__in=jgroups)
+                # find current site
+                if hasattr(settings, 'JANEUS_CURRENT_SITE'):
+                    site = settings.JANEUS_CURRENT_SITE()
+                else:
+                    site = None
+                if site is not None:
+                    jroles = jroles.filter(Q(sites=None) | Q(sites__id__exact=site))
+            if len(jroles):
+                jperms_query = '{}__in'.format(JaneusRole._meta.get_field('groups').related_query_name())
+                jperms = Permission.objects.filter(**{jperms_query: jroles})
                 jperms = jperms.values_list('content_type__app_label', 'codename').order_by()
                 jperms = set("%s.%s" % (ct, name) for ct, name in jperms)
                 user_obj._janeus_perm_cache = jperms.union(self.get_group_permissions(user_obj, obj))

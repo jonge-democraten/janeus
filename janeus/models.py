@@ -11,6 +11,7 @@ class JaneusRole(models.Model):
     role = models.CharField(max_length=250)
     groups = models.ManyToManyField(Group, blank=True)
     permissions = models.ManyToManyField(Permission, blank=True)
+    sites = models.ManyToManyField("sites.Site", blank=True)
 
     def __str__(self):
         return "Role '{0}'".format(self.role)
