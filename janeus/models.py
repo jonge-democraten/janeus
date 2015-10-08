@@ -26,4 +26,4 @@ class JaneusUser(models.Model):
         return "Janeus User '{0}'".format(self.uid)
 
 
-janeus_login = Signal(providing_args=['user', 'roles'])
+janeus_login = Signal(providing_args=['user', 'roles', 'sites'])
