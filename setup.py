@@ -8,5 +8,5 @@ setup(
     author='Jonge Democraten',
     include_package_data=True,
     license='MIT',
-    install_requires=['python-ldap>=2.4'],
+    install_requires=['pyldap>=2.4.20'],
 )
