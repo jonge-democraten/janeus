@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -47,6 +48,9 @@ class JaneusBackend(object):
         if hasattr(settings, 'JANEUS_CURRENT_SITE'):
             site = settings.JANEUS_CURRENT_SITE()
             return site.id if isinstance(site, Site) else site
+        elif apps.is_installed('mezzanine.core'):
+            from mezzanine.utils.sites import current_site_id
+            return current_site_id()
         else:
             from django.contrib.sites.shortcuts import get_current_site
             site = get_current_site()
@@ -117,6 +121,14 @@ class JaneusBackend(object):
             setattr(juser.user, 'last_name', attrs['sn'][0])
             setattr(juser.user, 'email', attrs['mail'][0])
             juser.user.save()
+
+        # Mezzanine support
+        if apps.is_installed('mezzanine.core'):
+            from mezzanine.core.models import SitePermission
+            # we do not remove site permission objects, we only add them
+            sp, created = SitePermission.objects.get_or_create(user=juser.user)
+            sp.sites.add(*sites)
+            sp.save()
 
         # add information to User object
         juser.user._janeus_user = juser
