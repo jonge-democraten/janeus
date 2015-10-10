@@ -1,32 +1,31 @@
 Janeus
 ===
 
-Janeus implements LDAP-related functionality for sites of the Jonge Democraten, especially a feature that allows users in LDAP to login and get administrator permissions in Django.
+Janeus implements LDAP-related functionality for sites of the Jonge Democraten, especially an authentication backend that allows users in LDAP to login and get permissions in Django.
 
 The application is open source and licensed with the MIT license.
 While the implementation is obviously tailored to the LDAP configuration of the Jonge Democraten,
 modifying the source code should be pretty straightforward.
 
+While originally developed for Python 2, we now support and test on Python 3.
+
 Installation
 ---
 
-First install the application in your virtualenv installation:
+Install the application in your virtualenv installation:
 
 `pip install -e git+https://github.com/jonge-democraten/janeus#egg=janeus`
-
-If you are using Python 3, you may want to install a fork of python-ldap first:
-
-`pip install -e git+https://github.com/rbarrois/python-ldap@py3#egg=python-ldap`
 
 Configuration
 ---
 
-In your `settings.py` file, you need to set at least `JANEUS_SERVER` (LDAP server, e.g. `ldap://127.0.0.1:389/`),
+In your `settings.py` file, you need to set at least `JANEUS_SERVER`,
 `JANEUS_DN` (username) and `JANEUS_PASS`.
-This allows the application to connect to your LDAP server.
+This allows Janeus to connect to your LDAP server.
 
-To configure the authentication backend, you need to add `janeus` to `INSTALLED_APPS` in `settings.py`.
-You must add `janeus.backend.JaneusBackend` to `AUTHENTICATION_BACKENDS`.
+If you want to use the authentication backend, you need to add `janeus` to `INSTALLED_APPS` in `settings.py`.
+You also need to add `janeus.backend.JaneusBackend` to `AUTHENTICATION_BACKENDS`.
+The authentication backend requires the django-sites framework (installed and in `INSTALLED_APPS`).
 Janeus is compatible with Django 1.7 migrations.
 
 An example of these settings in `settings.py`:
@@ -42,9 +41,20 @@ An example of these settings in `settings.py`:
         'janeus.backend.JaneusBackend', 
     )
 
+Janeus defines two models: JaneusUser and JaneusRole.
+The JaneusRole objects must be created in the Django admin to allow LDAP users to login.
+Each JaneusRole assigns to 1 LDAP group for either all sites or for a selection of sites,
+a number of permissions and group permissions.
+The backend only gives access to users that are in LDAP groups that have matching JaneusRole objects.
+When a user is given access, Janeus creates a JaneusUser object and a normal User object.
+If Mezzanine is installed, Janeus also created SitePermission objects for all sites on which the user has any permissions via Janeus.
+
+By default, Janeus retrieves the current site id from Mezzanine (if installed) or from django.contrib.sites.shortcuts.get_current_site.
+This behavior can be overridden by settings `JANEUS_CURRENT_SITE` in `settings.py`.
+
 Instead of a real LDAP server you can also use a fake LDAP server by defining method `JANEUS_FAKE_LDAP` in `settings.py`.
 This method takes parameters `username` and `password`, where `password` can be `None` (when called by `janeus_cleanup`, see below).
-It must either return `None` for no access or a list of groups (can be empty) on authentication success.
+It must either return `None` or `[]` for no access or a list of groups on authentication success.
 
 An example of using a fake LDAP server in `settings.py`:
 
@@ -59,12 +69,9 @@ An example of using a fake LDAP server in `settings.py`:
             return groups
         return None
 
-To manage authentication, add roles in the Janeus admin (in the Django admin).
-
-If you want functioning support for Sites (django-sites), set `JANEUS_CURRENT_SITE` in your `settings.py` to a function that returns the current site id.
-
 Maintenance
 ---
 
 Janeus implements a management command for `manage.py` called `janeus_cleanup`.
 This command checks every `User` that was added by Janeus. Users that no longer have access are deleted.
+It is not really necessary to run this management command unless there is a high number of Janeus users and you want to keep the database small.

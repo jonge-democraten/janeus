@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='janeus',
     version='1.4',
+    description='LDAP module for Jonge Democraten websites',
     packages=find_packages(),
     url='http://github.com/jonge-democraten/janeus/',
     author='Jonge Democraten',
