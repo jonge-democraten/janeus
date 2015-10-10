@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 import logging
 from janeus import Janeus
-from janeus.models import JaneusUser, JaneusRole, janeus_login
+from janeus.models import JaneusUser, JaneusRole
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +135,6 @@ class JaneusBackend(object):
         juser.user._janeus_groups = groups
         juser.user._janeus_roles = roles  # all roles of current site
         juser.user._janeus_sites = sites  # all sites with access
-
-        # send signal
-        janeus_login.send(sender=self.__class__, user=juser.user, roles=roles, sites=sites)
 
         return juser.user
 

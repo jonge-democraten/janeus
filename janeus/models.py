@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission
-from django.dispatch import Signal
 from django.utils.encoding import python_2_unicode_compatible
 
 
@@ -24,6 +23,3 @@ class JaneusUser(models.Model):
 
     def __str__(self):
         return "Janeus User '{0}'".format(self.uid)
-
-
-janeus_login = Signal(providing_args=['user', 'roles', 'sites'])
