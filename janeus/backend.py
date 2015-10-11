@@ -125,8 +125,10 @@ class JaneusBackend(object):
         # Mezzanine support
         if apps.is_installed('mezzanine.core'):
             from mezzanine.core.models import SitePermission
-            # we do not remove site permission objects, we only add them
             sp, created = SitePermission.objects.get_or_create(user=juser.user)
+            # if set in the settings, clear sp.sites before adding site permissions
+            if getattr(settings, 'JANEUS_MEZZANINE_CLEAR_SITEPERMISSION', False):
+                sp.sites.clear()
             sp.sites.add(*sites)
             sp.save()
 
