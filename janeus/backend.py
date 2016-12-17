@@ -53,7 +53,8 @@ class JaneusBackend(object):
             return current_site_id()
         else:
             from django.contrib.sites.shortcuts import get_current_site
-            site = get_current_site()
+            from janeus.utils import current_request
+            site = get_current_site(current_request())
             return site.id if isinstance(site, Site) else None
 
     def authenticate(self, username=None, password=None):
