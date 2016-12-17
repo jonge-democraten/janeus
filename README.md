@@ -24,7 +24,8 @@ In your `settings.py` file, you need to set at least `JANEUS_SERVER`,
 This allows Janeus to connect to your LDAP server.
 
 If you want to use the authentication backend, you need to add `janeus` to `INSTALLED_APPS` in `settings.py`.
-You also need to add `janeus.backend.JaneusBackend` to `AUTHENTICATION_BACKENDS`.
+You need to add `janeus.backend.JaneusBackend` to `AUTHENTICATION_BACKENDS`.
+You also need to add `janeus.utils.CurrentRequestMiddleware` to `MIDDLEWARE_CLASSES`
 The authentication backend requires the django-sites framework (installed and in `INSTALLED_APPS`).
 Janeus is compatible with Django 1.7 migrations.
 
@@ -50,7 +51,7 @@ When a user is given access, Janeus creates a JaneusUser object and a normal Use
 If Mezzanine is installed, Janeus also created SitePermission objects for all sites on which the user has any permissions via Janeus.
 
 By default, Janeus retrieves the current site id from Mezzanine (if installed) or from django.contrib.sites.shortcuts.get_current_site.
-This behavior can be overridden by settings `JANEUS_CURRENT_SITE` in `settings.py`.
+This behavior can be overridden by setting `JANEUS_CURRENT_SITE` in `settings.py`.
 
 Instead of a real LDAP server you can also use a fake LDAP server by defining method `JANEUS_FAKE_LDAP` in `settings.py`.
 This method takes parameters `username` and `password`, where `password` can be `None` (when called by `janeus_cleanup`, see below).
