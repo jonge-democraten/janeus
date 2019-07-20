@@ -13,7 +13,7 @@ class JaneusRole(models.Model):
     sites = models.ManyToManyField("sites.Site", blank=True)
 
     def __str__(self):
-        return "Role '{0}'".format(self.role)
+        return "Janeus Role '{0}'".format(self.role)
 
 
 @python_2_unicode_compatible

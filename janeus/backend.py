@@ -46,7 +46,10 @@ class JaneusBackend(object):
     @staticmethod
     def current_site_id():
         if hasattr(settings, 'JANEUS_CURRENT_SITE'):
-            site = settings.JANEUS_CURRENT_SITE()
+            if callable(settings.JANEUS_CURRENT_SITE):
+                site = settings.JANEUS_CURRENT_SITE()
+            else:
+                site = settings.JANEUS_CURRENT_SITE
             return site.id if isinstance(site, Site) else site
         elif apps.is_installed('mezzanine.core'):
             from mezzanine.utils.sites import current_site_id
