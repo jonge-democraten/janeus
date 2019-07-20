@@ -10,17 +10,26 @@ class Command(BaseCommand):
             self.check_user(u)
 
     def check_user(self, juser):
+        # first we retrieve the groups that the given user <juser.uid> is in
         attrs, groups = JaneusBackend.get_attrs_groups(juser.uid)
 
-        # check if user has access
-        roles = JaneusRole.objects.filter(role__in=groups)
-        if len(roles) == 0:
+        if groups is None:
+            # the user does not actually exist
             juser.user.delete()  # cascades
-            print("Deleted {}".format(juser.uid))
+            print("Deleted unknown user {}".format(juser.uid))
         else:
-            # set attributes
-            if attrs is not None:
-                setattr(juser.user, 'last_name', attrs['sn'][0])
-                setattr(juser.user, 'email', attrs['mail'][0])
-                juser.user.save()
-                print("Updated {}".format(juser.uid))
+            # retrieve the user's groups that are roles in our database
+            roles = JaneusRole.objects.filter(role__in=groups)
+            if len(roles) == 0:
+                # the user has no relevant roles
+                juser.user.delete()  # cascades
+                print("Deleted user without roles {}".format(juser.uid))
+            else:
+                # update the attributes, if we received them
+                if attrs is not None:
+                    if 'sn' in attrs:
+                        setattr(juser.user, 'last_name', attrs['sn'][0])
+                    if 'mail' in attrs:
+                        setattr(juser.user, 'email', attrs['mail'][0])
+                    juser.user.save()
+                    print("Updated user {}".format(juser.uid))
